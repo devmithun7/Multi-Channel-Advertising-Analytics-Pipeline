@@ -45,7 +45,7 @@ The pipeline:
 
 ```
    Raw CSVs                 dbt on Snowflake                              BI
- ┌───────────┐      ┌─────────────────────────────────────────┐   ┌────────────┐
+ ┌───────────┐      ┌───────────────────────────────────────────┐   ┌────────────┐
  │ 01_fb.csv │─┐    │  RAW            landed as-is              │   │  Tableau   │
  │ 02_goog.. │─┼──► │   raw_facebook_ads / raw_google_ads /     │   │  Public    │
  │ 03_tik..  │─┘    │   raw_tiktok_ads                          │   │ (1-page    │
@@ -63,7 +63,7 @@ The pipeline:
                     │   agg_overall / agg_platform /            │
                     │   agg_platform_day / agg_campaign /       │
                     │   agg_objective                           │
-                    └─────────────────────────────────────────┘
+                    └───────────────────────────────────────────┘
 ```
 
 **Why these layers**
