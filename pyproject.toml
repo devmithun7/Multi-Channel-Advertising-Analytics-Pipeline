@@ -1,0 +1,22 @@
+[project]
+name = "multichannel-ads-pipeline"
+version = "1.0.0"
+description = "Unify Facebook, Google, and TikTok advertising data into one model on Snowflake with dbt, exported for a Tableau dashboard."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # dbt + Snowflake adapter: builds raw -> staging -> intermediate -> marts.
+    "dbt-snowflake>=1.8",
+    # Used by export_marts.py to pull the marts to CSV for Tableau Public.
+    "snowflake-connector-python[pandas]>=3.7",
+    "pandas>=2.0",
+]
+
+[dependency-groups]
+# Optional tooling for local development. Install with: uv sync --group dev
+dev = [
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false

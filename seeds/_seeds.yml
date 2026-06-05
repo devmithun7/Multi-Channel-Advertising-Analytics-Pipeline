@@ -1,0 +1,56 @@
+version: 2
+
+seeds:
+  - name: raw_facebook_ads
+    description: >
+      RAW layer. Facebook Ads daily performance loaded as-is from
+      01_facebook_ads.csv. Grain: one row per date x campaign x ad set.
+    columns:
+      - name: date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: Facebook campaign identifier.
+        data_tests: [not_null]
+      - name: ad_set_id
+        description: Facebook ad set identifier (Facebook's name for an ad group).
+        data_tests: [not_null]
+      - name: spend
+        description: Amount spent in account currency.
+
+  - name: raw_google_ads
+    description: >
+      RAW layer. Google Ads daily performance loaded as-is from
+      02_google_ads.csv. Grain: one row per date x campaign x ad group.
+      Note: this is the only source that reports revenue (conversion_value).
+    columns:
+      - name: date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: Google campaign identifier.
+        data_tests: [not_null]
+      - name: ad_group_id
+        description: Google ad group identifier.
+        data_tests: [not_null]
+      - name: cost
+        description: Amount spent in account currency.
+      - name: conversion_value
+        description: Revenue attributed to conversions (Google only).
+
+  - name: raw_tiktok_ads
+    description: >
+      RAW layer. TikTok Ads daily performance loaded as-is from
+      03_tiktok_ads.csv. Grain: one row per date x campaign x ad group.
+    columns:
+      - name: date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: TikTok campaign identifier.
+        data_tests: [not_null]
+      - name: adgroup_id
+        description: TikTok ad group identifier.
+        data_tests: [not_null]
+      - name: cost
+        description: Amount spent in account currency.

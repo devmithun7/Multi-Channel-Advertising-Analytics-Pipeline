@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: stg_facebook_ads
+    description: "STAGING: conformed, typed Facebook ad-set daily performance (renamed to the common schema, platform-tagged)."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [ad_date, campaign_id, ad_group_id]
+    columns:
+      - name: platform
+        description: Source platform tag, constant 'facebook'.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['facebook']}
+      - name: ad_date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: Campaign identifier (natural key from the source).
+        data_tests: [not_null]
+      - name: ad_group_id
+        description: Ad-group identifier (Facebook's "ad set", conformed).
+        data_tests: [not_null]
+      - name: spend
+        description: Amount spent in account currency (Facebook 'spend', conformed).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: impressions
+        description: Number of times ads were shown.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+
+  - name: stg_google_ads
+    description: "STAGING: conformed, typed Google ad-group daily performance. The only source with revenue (conversion_value)."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [ad_date, campaign_id, ad_group_id]
+    columns:
+      - name: platform
+        description: Source platform tag, constant 'google'.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['google']}
+      - name: ad_date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: Campaign identifier (natural key from the source).
+        data_tests: [not_null]
+      - name: ad_group_id
+        description: Ad-group identifier.
+        data_tests: [not_null]
+      - name: spend
+        description: Amount spent in account currency (Google 'cost', conformed to 'spend').
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: conversion_value
+        description: Revenue attributed to conversions (Google only).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+
+  - name: stg_tiktok_ads
+    description: "STAGING: conformed, typed TikTok ad-group daily performance (rich video + social engagement)."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [ad_date, campaign_id, ad_group_id]
+    columns:
+      - name: platform
+        description: Source platform tag, constant 'tiktok'.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['tiktok']}
+      - name: ad_date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: Campaign identifier (natural key from the source).
+        data_tests: [not_null]
+      - name: ad_group_id
+        description: Ad-group identifier (TikTok's "adgroup", conformed).
+        data_tests: [not_null]
+      - name: spend
+        description: Amount spent in account currency (TikTok 'cost', conformed to 'spend').
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}

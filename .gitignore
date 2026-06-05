@@ -1,0 +1,22 @@
+# dbt artifacts
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# Python / uv
+.venv/
+__pycache__/
+.ruff_cache/
+
+# Secrets & local helpers
+.env
+load-env.ps1
+
+# Generated outputs (regenerable via scripts / dbt)
+exports/
+KPI_Metadata.xlsx
+
+# Project docs not meant for the repo
+VIDEO_SCRIPT.md
+DASHBOARD_TEMPLATE.md

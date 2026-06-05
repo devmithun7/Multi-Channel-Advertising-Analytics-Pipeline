@@ -1,0 +1,44 @@
+name: 'multichannel_ads'
+version: '1.0.0'
+config-version: 2
+
+# This profile name maps to an entry in profiles.yml.
+profile: 'multichannel_ads'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Raw seeds are loaded as text and cast explicitly in staging, so we keep
+# the loaded types simple and predictable across warehouses.
+seeds:
+  multichannel_ads:
+    +schema: raw
+    raw_facebook_ads:
+      +column_types:
+        date: date
+    raw_google_ads:
+      +column_types:
+        date: date
+    raw_tiktok_ads:
+      +column_types:
+        date: date
+
+models:
+  multichannel_ads:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table

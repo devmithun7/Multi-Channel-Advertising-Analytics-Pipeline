@@ -1,0 +1,347 @@
+version: 2
+
+models:
+  - name: fct_ad_performance
+    description: >
+      MART (fact): unified daily ad performance across Facebook, Google and
+      TikTok with consistently-defined cross-channel metrics. Grain: one row
+      per platform x date x campaign x ad group. Joins to dim_date,
+      dim_platform and dim_campaign via surrogate foreign keys (star schema).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [date_key, platform_key, campaign_key, ad_group_id]
+      # Business rule: you cannot get more clicks than impressions served.
+      - dbt_utils.expression_is_true:
+          expression: "clicks <= impressions"
+      # Business rule: conversions cannot exceed the clicks that drove them.
+      - dbt_utils.expression_is_true:
+          expression: "conversions <= clicks"
+      # Business rule: video views cannot exceed impressions.
+      - dbt_utils.expression_is_true:
+          expression: "video_views <= impressions"
+      # Business rule: unique reach cannot exceed total impressions.
+      - dbt_utils.expression_is_true:
+          expression: "reach <= impressions"
+      # Business rule: people who watched 25% can't exceed total video viewers.
+      - dbt_utils.expression_is_true:
+          expression: "video_watch_25 <= video_views"
+      # Business rule: video quartile retention must monotonically decrease.
+      - dbt_utils.expression_is_true:
+          expression: "video_watch_25 >= video_watch_50"
+      - dbt_utils.expression_is_true:
+          expression: "video_watch_50 >= video_watch_75"
+      - dbt_utils.expression_is_true:
+          expression: "video_watch_75 >= video_watch_100"
+    columns:
+      - name: ad_performance_key
+        description: Surrogate key for the fact grain (platform + date + campaign + ad group).
+        data_tests: [not_null, unique]
+      - name: date_key
+        description: FK to dim_date (YYYYMMDD integer).
+        data_tests:
+          - not_null
+          - relationships: {to: ref('dim_date'), field: date_key}
+      - name: platform_key
+        description: FK to dim_platform.
+        data_tests:
+          - not_null
+          - relationships: {to: ref('dim_platform'), field: platform_key}
+      - name: campaign_key
+        description: FK to dim_campaign.
+        data_tests:
+          - not_null
+          - relationships: {to: ref('dim_campaign'), field: campaign_key}
+      - name: ad_group_id
+        description: Ad-group natural key (degenerate dimension; no ad-group dim table).
+      - name: ad_group_name
+        description: Ad-group display name (degenerate dimension).
+      # Core volume measures: counts and money are never negative.
+      - name: impressions
+        description: Number of times ads were shown.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: clicks
+        description: Number of clicks on the ads.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: conversions
+        description: Number of attributed conversions.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: spend
+        description: Amount spent in account currency (unified across platforms).
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: conversion_value
+        description: Revenue attributed to conversions (Google only; NULL elsewhere).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      # Efficiency KPIs.
+      - name: ctr
+        description: clicks / impressions.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      - name: cpc
+        description: spend / clicks.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: cpm
+        description: spend / impressions * 1000.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: cvr
+        description: conversions / clicks.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      - name: cpa
+        description: spend / conversions.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: roas
+        description: conversion_value / spend (Google only; NULL elsewhere).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: aov
+        description: Average order value = conversion_value / conversions (Google only).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: revenue_per_click
+        description: conversion_value / clicks (Google only).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: cpv
+        description: Cost per video view = spend / video_views (video platforms).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: vtr
+        description: View-through rate = video_views / impressions.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      - name: hook_rate
+        description: Share of impressions that watched 25% of the video.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      - name: hold_rate
+        description: video_watch_100 / video_watch_25 (retention through the video).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      - name: video_completion_rate
+        description: video_watch_100 / video_views.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      # Engagement KPIs.
+      - name: reach
+        description: Unique users reached (Facebook).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: frequency
+        description: Avg impressions per reached user (Facebook).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      - name: engagement_rate
+        description: Facebook-reported engagement rate.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      - name: social_engagement_rate
+        description: (likes + shares + comments) / impressions.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
+      # Quality signals (Google).
+      - name: quality_score
+        description: Google quality score (1-10 scale).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 1, max_value: 10, inclusive: true}
+      - name: search_impression_share
+        description: Share of eligible impressions won (Google), 0-1.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1, inclusive: true}
+      # Raw video / social counts (TikTok; Facebook reports video_views only).
+      - name: video_views
+        description: Number of video views (video platforms).
+      - name: video_watch_25
+        description: Count of views that reached 25% of the video (TikTok).
+      - name: video_watch_50
+        description: Count of views that reached 50% of the video (TikTok).
+      - name: video_watch_75
+        description: Count of views that reached 75% of the video (TikTok).
+      - name: video_watch_100
+        description: Count of views that completed the video (TikTok).
+      - name: video_watch_25_rate
+        description: video_watch_25 / video_views.
+      - name: video_watch_50_rate
+        description: video_watch_50 / video_views.
+      - name: video_watch_75_rate
+        description: video_watch_75 / video_views.
+      - name: likes
+        description: Number of likes (TikTok).
+      - name: shares
+        description: Number of shares (TikTok).
+      - name: comments
+        description: Number of comments (TikTok).
+      - name: social_engagements
+        description: likes + shares + comments (TikTok; 0 where not reported).
+
+  - name: dim_date
+    description: "MART (dim): calendar dimension, one row per date present in the data. Smart key date_key = YYYYMMDD."
+    columns:
+      - name: date_key
+        description: Smart integer key in YYYYMMDD form; the fact's date foreign key.
+        data_tests: [not_null, unique]
+      - name: full_date
+        description: The calendar date.
+        data_tests: [not_null]
+      - name: year
+        description: Calendar year.
+      - name: quarter
+        description: Calendar quarter (1-4).
+      - name: month
+        description: Calendar month number (1-12).
+      - name: month_name
+        description: Month name (e.g. Jan).
+      - name: week_of_year
+        description: ISO-style week number within the year.
+      - name: day_of_month
+        description: Day of the month (1-31).
+      - name: day_of_week
+        description: Day-of-week number.
+      - name: day_name
+        description: Day name (e.g. Mon).
+      - name: is_weekend
+        description: True when full_date is Saturday or Sunday.
+
+  - name: dim_platform
+    description: "MART (dim): one row per advertising platform with descriptive attributes for segmentation."
+    columns:
+      - name: platform_key
+        description: Surrogate key; the fact's platform foreign key.
+        data_tests: [not_null, unique]
+      - name: platform
+        description: Platform name (facebook / google / tiktok).
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['facebook', 'google', 'tiktok']}
+      - name: platform_category
+        description: Channel grouping — 'Search' (Google) or 'Social' (Facebook, TikTok).
+      - name: is_video_platform
+        description: True for platforms that carry video metrics (Facebook, TikTok).
+      - name: reports_revenue
+        description: True only for platforms that report conversion_value (Google).
+
+  - name: dim_campaign
+    description: "MART (dim): one row per campaign with a derived marketing objective (funnel stage)."
+    columns:
+      - name: campaign_key
+        description: Surrogate key (platform + campaign_id); the fact's campaign foreign key.
+        data_tests: [not_null, unique]
+      - name: platform_key
+        description: FK to dim_platform.
+        data_tests:
+          - relationships: {to: ref('dim_platform'), field: platform_key}
+      - name: platform
+        description: Platform the campaign ran on.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['facebook', 'google', 'tiktok']}
+      - name: campaign_id
+        description: Campaign natural key.
+      - name: campaign_name
+        description: Campaign display name.
+      - name: campaign_objective
+        description: Funnel stage inferred from the campaign name (heuristic).
+        data_tests:
+          - accepted_values: {values: ['Awareness', 'Traffic', 'Conversion', 'Engagement', 'Other']}
+      - name: ad_group_count
+        description: Distinct ad groups in the campaign.
+      - name: first_active_date
+        description: Earliest date the campaign had activity.
+      - name: last_active_date
+        description: Latest date the campaign had activity.
+      - name: total_spend
+        description: Total spend across the campaign's full period.
+      - name: total_conversions
+        description: Total conversions across the campaign's full period.
+
+  - name: agg_platform_day
+    description: "MART (agg): platform x day rollup. Ratio metrics recomputed as SUM/SUM. Convenient for daily-trend and platform-comparison charts."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [platform_key, date_key]
+    columns:
+      - name: platform_key
+        description: FK to dim_platform.
+        data_tests: [not_null]
+      - name: date_key
+        description: FK to dim_date.
+        data_tests: [not_null]
+      - name: ad_date
+        description: The calendar date (denormalized from dim_date for convenience).
+      - name: platform
+        description: Platform name (denormalized from dim_platform).
+      - name: spend_pct_of_day
+        description: This platform's share of total spend on that day (0-1).
+
+  - name: agg_campaign
+    description: "MART (agg): full-period campaign rollup joined to dim_campaign. Ratio metrics recomputed as SUM/SUM."
+    columns:
+      - name: campaign_key
+        description: FK to dim_campaign (grain of this table).
+        data_tests: [not_null, unique]
+      - name: campaign_objective
+        description: Funnel stage (from dim_campaign).
+      - name: spend_pct_of_total
+        description: This campaign's share of total spend across all campaigns (0-1).
+
+  - name: agg_overall
+    description: >
+      MART (agg): single-row KPI summary for the dashboard scorecards. Every
+      headline metric (total spend/conversions/revenue, blended CPA/CTR/ROAS,
+      Google ROAS) is pre-computed so no BI calculated fields are required.
+    columns:
+      - name: total_spend
+        description: Total spend across all platforms.
+        data_tests: [not_null]
+      - name: total_conversions
+        description: Total conversions across all platforms.
+        data_tests: [not_null]
+      - name: total_revenue
+        description: Total tracked revenue (Google only).
+      - name: blended_cpa
+        description: total_spend / total_conversions.
+      - name: google_roas
+        description: Google revenue / Google spend.
+
+  - name: agg_platform
+    description: "MART (agg): full-period rollup per platform (3 rows) for the comparison bars and CPA-vs-CTR scatter. Ratios pre-computed (SUM/SUM)."
+    columns:
+      - name: platform_key
+        description: FK to dim_platform (grain of this table).
+        data_tests: [not_null, unique]
+      - name: platform
+        description: Platform name.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['facebook', 'google', 'tiktok']}
+      - name: cpa
+        description: spend / conversions (whole period).
+      - name: ctr
+        description: clicks / impressions (whole period).
+      - name: roas
+        description: conversion_value / spend (Google only).
+      - name: spend_pct_of_total
+        description: Platform share of total spend (0-1).
+
+  - name: agg_objective
+    description: "MART (agg): rollup per marketing objective (funnel stage) for the Spend-by-Objective donut. Ratios pre-computed (SUM/SUM)."
+    columns:
+      - name: campaign_objective
+        description: Funnel stage (grain of this table).
+        data_tests:
+          - not_null
+          - unique
+          - accepted_values: {values: ['Awareness', 'Traffic', 'Conversion', 'Engagement', 'Other']}
+      - name: spend_pct_of_total
+        description: Objective share of total spend (0-1).

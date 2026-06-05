@@ -1,0 +1,21 @@
+# Project-local profiles.yml.
+# Run dbt with:  dbt build --profiles-dir .
+#
+# Snowflake is the only target (the cloud deliverable). Fill the values via
+# environment variables (see README) or replace the env_var() calls with literals.
+
+multichannel_ads:
+  target: snowflake
+  outputs:
+
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'MULTICHANNEL_ADS') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'PUBLIC') }}"
+      threads: 8
+      client_session_keep_alive: false

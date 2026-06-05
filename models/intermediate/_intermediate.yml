@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_ads_unified
+    description: >
+      INTERMEDIATE: all three ad platforms unioned into one conformed schema.
+      Grain: one row per platform x date x campaign x ad group. Platform-specific
+      metrics are NULL where a platform does not report them.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [platform, ad_date, campaign_id, ad_group_id]
+    columns:
+      - name: platform
+        description: Source platform the row came from (facebook / google / tiktok).
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['facebook', 'google', 'tiktok']}
+      - name: ad_date
+        description: Reporting day.
+        data_tests: [not_null]
+      - name: campaign_id
+        description: Campaign natural key (unique within a platform).
+        data_tests: [not_null]
+      - name: ad_group_id
+        description: Ad-group natural key (unique within a platform).
+        data_tests: [not_null]
+      - name: spend
+        description: Unified spend in account currency (Facebook spend / Google & TikTok cost).
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: true}
