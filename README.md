@@ -322,21 +322,6 @@ A full build spec — exact numbers, colors, fonts, and layout — is in
 
 ---
 
-## 10. Documentation & deliverables
-
-| Artifact | File |
-|---|---|
-| KPI data dictionary | `KPI_Metadata.xlsx` (via `build_metadata.py`) |
-| Dashboard build spec | `DASHBOARD_TEMPLATE.md` |
-| Video walkthrough script | `VIDEO_SCRIPT.md` |
-| dbt model/column docs | `_staging.yml`, `_intermediate.yml`, `_marts.yml` |
-
-**Deliverables checklist**
-- [x] Three CSVs uploaded to a cloud database → `dbt seed` loads them into Snowflake `RAW`.
-- [x] Unifying table created → `MARTS.FCT_AD_PERFORMANCE` (+ supporting marts).
-- [x] One-page dashboard built in Tableau.
-- [x] Live dashboard link → [Tableau Public](https://public.tableau.com/app/profile/dev.mithunisvar/viz/MarketingAnalytics_17806394670810/Dashboard1).
-- [ ] Video walkthrough → record using `VIDEO_SCRIPT.md`.
 
 ### Assumptions & notes
 - **Revenue is only available from Google** (`conversion_value`); ROAS is left `NULL`
